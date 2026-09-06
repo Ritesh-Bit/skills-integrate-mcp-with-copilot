@@ -8,8 +8,14 @@
   </head>
   <body>
     <header>
-      <h1>Mergington High School</h1>
-      <h2>Extracurricular Activities</h2>
+      <div>
+        <h1>Mergington High School</h1>
+        <h2>Extracurricular Activities</h2>
+      </div>
+      <div class="admin-controls">
+        <span id="admin-status">Teacher access required to manage registrations</span>
+        <button id="admin-toggle" type="button">Teacher login</button>
+      </div>
     </header>
 
     <main>
@@ -23,6 +29,7 @@
 
       <section id="signup-container">
         <h3>Sign Up for an Activity</h3>
+        <p id="signup-help">A teacher must be signed in to add or remove students.</p>
         <form id="signup-form">
           <div class="form-group">
             <label for="email">Student Email:</label>
@@ -40,6 +47,25 @@
         <div id="message" class="hidden"></div>
       </section>
     </main>
+
+    <div id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <div class="modal-content">
+        <button id="close-login" class="modal-close" type="button" aria-label="Close login">&times;</button>
+        <h3 id="login-title">Teacher login</h3>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" autocomplete="username" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" autocomplete="current-password" required />
+          </div>
+          <button type="submit">Log in</button>
+        </form>
+        <div id="login-message" class="hidden"></div>
+      </div>
+    </div>
 
     <footer>
       <p>&copy; 2026 Mergington High School</p>
