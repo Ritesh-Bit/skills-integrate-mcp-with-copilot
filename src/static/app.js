@@ -3,6 +3,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const signupHelp = document.getElementById("signup-help");
+  const adminStatus = document.getElementById("admin-status");
+  const adminToggle = document.getElementById("admin-toggle");
+  const loginModal = document.getElementById("login-modal");
+  const closeLogin = document.getElementById("close-login");
+  const loginForm = document.getElementById("login-form");
+  const loginMessage = document.getElementById("login-message");
+  let currentTeacher = null;
+
+  function escapeHtml(value) {
+    return value.replace(/[&<>'"]/g, (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    })[character]);
+  }
+
+  function updateAuthControls() {
+    const isTeacher = Boolean(currentTeacher);
+    adminStatus.textContent = isTeacher
+      ? `Signed in as ${currentTeacher.username}`
+      : "Teacher access required to manage registrations";
+    adminToggle.textContent = isTeacher ? "Log out" : "Teacher login";
+    signupHelp.textContent = isTeacher
+      ? "You can add or remove students from any activity."
+      : "A teacher must be signed in to add or remove students.";
+    signupForm.querySelector("button[type=submit]").disabled = !isTeacher;
+    signupForm.querySelectorAll("input, select").forEach((field) => {
+      field.disabled = !isTeacher;
+    });
+  }
+
+  async function fetchAuthState() {
+    const response = await fetch("/auth/me");
+    currentTeacher = response.ok ? await response.json() : null;
+    updateAuthControls();
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -30,7 +69,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants
                   .map(
                     (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="participant-email">${escapeHtml(email)}</span>${
+                        currentTeacher
+                          ? `<button class="delete-btn" data-activity="${escapeHtml(name)}" data-email="${escapeHtml(email)}" aria-label="Remove ${escapeHtml(email)}">Remove</button>`
+                          : ""
+                      }</li>`
                   )
                   .join("")}
               </ul>
@@ -155,6 +198,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  adminToggle.addEventListener("click", async () => {
+    if (currentTeacher) {
+      await fetch("/auth/logout", { method: "POST" });
+      currentTeacher = null;
+      updateAuthControls();
+      fetchActivities();
+      return;
+    }
+    loginModal.classList.remove("hidden");
+    document.getElementById("username").focus();
+  });
+
+  closeLogin.addEventListener("click", () => loginModal.classList.add("hidden"));
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    loginMessage.className = "hidden";
+
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+      }),
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      loginMessage.textContent = result.detail || "Login failed";
+      loginMessage.className = "error";
+      return;
+    }
+
+    currentTeacher = result;
+    loginForm.reset();
+    loginModal.classList.add("hidden");
+    updateAuthControls();
+    fetchActivities();
+  });
+
   // Initialize app
-  fetchActivities();
+  fetchAuthState().then(fetchActivities);
 });
